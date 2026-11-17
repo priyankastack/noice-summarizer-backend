@@ -13,7 +13,9 @@ def generate_summary(transcript: str):
         return ["No transcript available"]
 
     prompt = f"""
-Summarize the following transcript into concise bullet points.
+The following text is either a speech/conversation transcript or song lyrics.
+If it is song lyrics, summarize the theme, mood and story of the song.
+If it is speech, summarize the key points.
 Return only bullet points, one per line.
 
 Transcript:
@@ -32,7 +34,7 @@ Transcript:
     text = response.content[0].text
 
     lines = [
-        line.replace("-", "").replace("•", "").strip()
+        line.lstrip("-•* ").strip()
         for line in text.split("\n")
         if line.strip()
     ]

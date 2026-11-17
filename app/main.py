@@ -1,6 +1,7 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 import os
 import shutil
+from typing import Optional
 
 from app.whisper_service import transcribe_audio
 from app.summary_service import generate_summary  
@@ -23,7 +24,11 @@ def health():
     return {"status": "ok"}
 
 @app.post("/upload-audio")
-def upload_audio(file: UploadFile = File(...)):
+def upload_audio(
+    file: UploadFile = File(...),
+    language: Optional[str] = Form("hi"),  # default Hindi, auto-detect me Urdu script aa jati hai
+    is_lyrics: bool = Form(True),
+):
     os.makedirs("uploads", exist_ok=True)
 
     file_path = f"uploads/{file.filename}"
@@ -31,12 +36,21 @@ def upload_audio(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    text = transcribe_audio(file_path)
+    text = transcribe_audio(file_path, language=language or None, is_lyrics=is_lyrics)
+
+    if not text.strip():
+        return {
+            "message": "File uploaded successfully",
+            "filename": file.filename,
+            "transcript": "",
+            "summary": ["No speech or lyrics detected (audio may be instrumental)"],
+        }
+
     summary = generate_summary(text)
 
     return {
         "message": "File uploaded successfully",
         "filename": file.filename,
         "transcript": text,
-        "summary":summary
+        "summary": summary
     }
